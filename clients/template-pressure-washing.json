@@ -1,0 +1,41 @@
+{
+  "slug": "template-pressure-washing",
+  "hostname": "",
+  "name": "PowerClean Pressure Washing",
+  "niche": "pressure-washing",
+  "city": "Your City",
+  "phone": "(000) 000-0000",
+  "emailRecipients": "owner@example.com",
+  "serviceArea": "Your service area",
+  "logoUrl": "",
+  "stripePaymentLink": "",
+  "notifyByEmail": true,
+  "notifyBySms": true,
+  "landing": {
+    "hero": {
+      "headline": "Pressure Washing That Instantly Boosts Curb Appeal",
+      "subheadline": "Driveways, siding, patios, and storefronts cleaned by trained pros.",
+      "ctaText": "Get My Quote",
+      "backgroundImage": "https://images.unsplash.com/photo-1619866601438-f7eaedc9b4a9?w=1400&q=80"
+    },
+    "services": [
+      { "title": "Driveway Cleaning", "description": "Oil stains, grime, and buildup removed safely." },
+      { "title": "House Soft Wash", "description": "Low-pressure wash for siding and painted surfaces." },
+      { "title": "Patio & Fence", "description": "Restore weathered outdoor surfaces." }
+    ],
+    "pricing": [
+      { "name": "Driveway Refresh", "price": "$149", "details": "Single-car driveway" },
+      { "name": "Whole Exterior", "price": "$349", "details": "Home siding + driveway" },
+      { "name": "Commercial Front", "price": "$499", "details": "Storefront curb appeal package" }
+    ],
+    "testimonials": [
+      { "name": "Chris P.", "quote": "House looked 10 years newer after one visit." },
+      { "name": "Dana L.", "quote": "Prompt, professional, and excellent cleanup." }
+    ],
+    "faq": [
+      { "question": "Is pressure washing safe for siding?", "answer": "Yes, we use soft-wash techniques for delicate surfaces." },
+      { "question": "Do I need to be home?", "answer": "No, as long as we can access water hookup areas." }
+    ],
+    "serviceAreaText": "Serving local neighborhoods and surrounding communities."
+  }
+}
