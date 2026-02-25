@@ -19,9 +19,21 @@ export type LandingConfig = z.infer<typeof landingConfigSchema>;
 export const leadSchema = z.object({
   name: z.string().min(2).max(80),
   phone: z.string().min(7).max(30),
+
+  // allow either a valid email or empty string (optional field)
   email: z.string().email().optional().or(z.literal('')),
+
   serviceType: z.string().min(2),
   address: z.string().min(5),
-  preferredDate: z.string().optional(),
-  notes: z.string().max(1000).optional()
+
+  // converts "YYYY-MM-DD" from <input type="date"> into a real Date for Prisma DateTime
+  preferredDate: z.preprocess((v) => {
+    if (v === undefined || v === null || v === '') return undefined;
+    const d = new Date(String(v));
+    return isNaN(d.getTime()) ? undefined : d;
+  }, z.date().optional()),
+
+  notes: z.string().max(1000).optional().or(z.literal(''))
 });
+
+export type LeadInput = z.infer<typeof leadSchema>;

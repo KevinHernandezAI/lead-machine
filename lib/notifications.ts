@@ -1,4 +1,4 @@
-import { Resend } from '@resend/node';
+import { Resend } from "resend";
 import twilio from 'twilio';
 import { prisma } from './prisma';
 
