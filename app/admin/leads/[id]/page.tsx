@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import Image from 'next/image';
 import { notFound, redirect } from 'next/navigation';
 import { isAuthenticated } from '@/lib/auth';
