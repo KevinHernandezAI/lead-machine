@@ -1,39 +1,47 @@
-import crypto from 'node:crypto';
+import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 
-const COOKIE = 'admin_session';
+const COOKIE_NAME = 'admin_session';
 
-function sign(value: string) {
-  return crypto.createHmac('sha256', process.env.SESSION_SECRET || 'dev-secret').update(value).digest('hex');
+export function verifyPassword(password: string) {
+  const expected = process.env.ADMIN_PASSWORD || '';
+  return password === expected;
 }
 
 export function createSessionCookie() {
-  const payload = `${Date.now()}`;
-  const token = `${payload}.${sign(payload)}`;
-  cookies().set(COOKIE, token, {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    path: '/',
-    maxAge: 60 * 60 * 24 * 7
-  });
+  // If this runs without a request context (shouldn't), just no-op.
+  try {
+    cookies().set(COOKIE_NAME, '1', {
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60 * 24 * 30 // 30 days
+    });
+  } catch {
+    // no-op
+  }
 }
 
 export function clearSessionCookie() {
-  cookies().delete(COOKIE);
+  try {
+    cookies().set(COOKIE_NAME, '', {
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 0
+    });
+  } catch {
+    // no-op
+  }
 }
 
-export function isAuthenticated() {
-  const token = cookies().get(COOKIE)?.value;
-  if (!token) return false;
-  const [payload, signature] = token.split('.');
-  return !!payload && signature === sign(payload);
-}
-
-export function verifyPassword(password: string) {
-  const expected = process.env.ADMIN_PASSWORD;
-  if (!expected) return false;
-  const incomingHash = crypto.createHash('sha256').update(password).digest('hex');
-  const expectedHash = crypto.createHash('sha256').update(expected).digest('hex');
-  return crypto.timingSafeEqual(Buffer.from(incomingHash), Buffer.from(expectedHash));
+export function isAuthenticated(): boolean {
+  try {
+    return !!cookies().get(COOKIE_NAME)?.value;
+  } catch {
+    // Build-time / no request context -> not authenticated
+    return false;
+  }
 }
