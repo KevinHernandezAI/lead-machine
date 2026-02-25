@@ -1,0 +1,41 @@
+{
+  "slug": "default-detailing",
+  "hostname": "localhost",
+  "name": "Shine Pro Mobile Detailing",
+  "niche": "mobile-detailing",
+  "city": "Austin",
+  "phone": "(512) 555-0100",
+  "emailRecipients": "owner@shinepro.example",
+  "serviceArea": "Austin, Round Rock, Cedar Park",
+  "logoUrl": "https://images.unsplash.com/photo-1541443131876-44b03de101c5?w=200&q=80",
+  "stripePaymentLink": "",
+  "notifyByEmail": true,
+  "notifyBySms": false,
+  "landing": {
+    "hero": {
+      "headline": "Mobile Detailing That Makes Your Car Look Brand New",
+      "subheadline": "Same-day appointments available across Austin. Licensed, insured, and 5-star rated.",
+      "ctaText": "Get a Fast Quote",
+      "backgroundImage": "https://images.unsplash.com/photo-1607860108855-64acf2078ed9?w=1400&q=80"
+    },
+    "services": [
+      { "title": "Interior Deep Clean", "description": "Steam cleaning, shampoo, stain treatment." },
+      { "title": "Exterior Wash & Wax", "description": "Foam wash, clay bar, ceramic wax finish." },
+      { "title": "Full Detail", "description": "Interior + exterior complete package." }
+    ],
+    "pricing": [
+      { "name": "Sedan Refresh", "price": "$129", "details": "Interior + exterior basic detail" },
+      { "name": "SUV Full Detail", "price": "$199", "details": "Most popular package" },
+      { "name": "Premium Ceramic", "price": "$349", "details": "6-month paint protection" }
+    ],
+    "testimonials": [
+      { "name": "Jordan M.", "quote": "My truck looked better than the day I bought it." },
+      { "name": "Alyssa R.", "quote": "Easy booking and on-time service every time." }
+    ],
+    "faq": [
+      { "question": "How long does it take?", "answer": "Most jobs take 2-4 hours depending on vehicle size." },
+      { "question": "Do you bring water and power?", "answer": "Yes, we come fully equipped." }
+    ],
+    "serviceAreaText": "Serving Austin and nearby areas with mobile, at-home detailing."
+  }
+}

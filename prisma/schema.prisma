@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  BOOKED
+  CLOSED
+}
+
+model Client {
+  id                 String   @id @default(cuid())
+  slug               String   @unique
+  hostname           String?  @unique
+  name               String
+  niche              String
+  city               String
+  phone              String
+  emailRecipients    String
+  serviceArea        String
+  logoUrl            String?
+  stripePaymentLink  String?
+  notifyByEmail      Boolean  @default(true)
+  notifyBySms        Boolean  @default(true)
+  landingConfigJson  String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  leads              Lead[]
+  notifications      NotificationLog[]
+}
+
+model Lead {
+  id            String     @id @default(cuid())
+  clientId      String
+  client        Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  name          String
+  phone         String
+  email         String?
+  serviceType   String
+  address       String
+  preferredDate DateTime?
+  notes         String?
+  photoUrl      String?
+  status        LeadStatus @default(NEW)
+  internalNotes String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([clientId, status, createdAt])
+}
+
+model NotificationLog {
+  id        String   @id @default(cuid())
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  leadId    String
+  channel   String
+  success   Boolean
+  error     String?
+  createdAt DateTime @default(now())
+
+  @@index([clientId, leadId])
+}
