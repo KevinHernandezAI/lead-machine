@@ -1,15 +1,21 @@
-export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextResponse } from 'next/server';
 import { isAuthenticated } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   if (!isAuthenticated()) return new NextResponse('Unauthorized', { status: 401 });
-  const leads = await prisma.lead.findMany({ include: { client: true }, orderBy: { createdAt: 'desc' } });
-  const lines = [
-    'id,createdAt,client,name,phone,email,serviceType,address,status,preferredDate,notes,internalNotes'
-  ];
+
+  const leads = await prisma.lead.findMany({
+    include: { client: true },
+    orderBy: { createdAt: 'desc' }
+  });
+
+  const lines = ['id,createdAt,client,name,phone,email,serviceType,address,status,preferredDate,notes,internalNotes'];
+
   for (const lead of leads) {
     const row = [
       lead.id,
@@ -25,6 +31,7 @@ export async function GET() {
       (lead.notes || '').replace(/,/g, ';'),
       (lead.internalNotes || '').replace(/,/g, ';')
     ];
+
     lines.push(row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','));
   }
 
