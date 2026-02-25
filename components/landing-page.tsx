@@ -25,16 +25,33 @@ export function LandingPage({
           <div>
             <h1 className="text-4xl font-bold">{config.hero.headline}</h1>
             <p className="mt-3 text-lg text-slate-100">{config.hero.subheadline}</p>
-            <div className="mt-5 flex gap-3">
-              <a href="#quote-form" className="rounded bg-brand-600 px-4 py-2 font-semibold">{config.hero.ctaText}</a>
+
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <a href="#quote-form" className="rounded bg-brand-600 px-4 py-2 font-semibold">
+                {config.hero.ctaText}
+              </a>
+
               {stripePaymentLink && (
-                <a href={stripePaymentLink} className="rounded border border-white px-4 py-2 font-semibold">
-                  Pay Deposit
+                <a
+                  href={stripePaymentLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded border border-white px-4 py-2 font-semibold"
+                >
+                  Pay Setup ($199)
                 </a>
               )}
             </div>
+
+            {stripePaymentLink && (
+              <p className="mt-2 text-xs text-slate-200">
+                Business owners: pay setup to launch your own version.
+              </p>
+            )}
+
             <p className="mt-4 text-sm">Call now: {phone}</p>
           </div>
+
           <QuoteForm clientSlug={clientSlug} />
         </div>
       </section>
@@ -96,7 +113,10 @@ export function LandingPage({
         </div>
       </section>
 
-      <a href="#quote-form" className="fixed bottom-4 right-4 rounded-full bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-lg md:hidden">
+      <a
+        href="#quote-form"
+        className="fixed bottom-4 right-4 rounded-full bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-lg md:hidden"
+      >
         Get a Quote
       </a>
     </main>
