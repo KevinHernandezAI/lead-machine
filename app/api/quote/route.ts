@@ -1,30 +1,21 @@
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+
 import { NextResponse } from 'next/server';
-import fs from 'node:fs/promises';
-import path from 'node:path';
 import { prisma } from '@/lib/prisma';
 import { leadSchema } from '@/lib/types';
-import { sendLeadNotifications } from '@/lib/notifications';
 
 const MAX_FILE_SIZE = 4 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 function toNullableDate(value: unknown): Date | null {
   if (!value) return null;
-
-  // If Zod preprocess already turned it into a Date
-  if (value instanceof Date) {
-    return isNaN(value.getTime()) ? null : value;
-  }
-
-  // If it is still a string (e.g., "2026-02-26")
+  if (value instanceof Date) return isNaN(value.getTime()) ? null : value;
   if (typeof value === 'string') {
     const d = new Date(value);
     return isNaN(d.getTime()) ? null : d;
   }
-
   return null;
 }
 
@@ -42,7 +33,6 @@ export async function POST(request: Request) {
     const client = await prisma.client.findUnique({ where: { slug: clientSlug } });
     if (!client) return NextResponse.json({ ok: false, error: 'Client not found' }, { status: 404 });
 
-    // Validate input WITHOUT throwing
     const parsed = leadSchema.safeParse({
       name: formData.get('name'),
       phone: formData.get('phone'),
@@ -54,7 +44,6 @@ export async function POST(request: Request) {
     });
 
     if (!parsed.success) {
-      // Return a useful error for debugging (and still safe for users)
       return NextResponse.json(
         { ok: false, where: 'leadSchema', error: parsed.error.flatten() },
         { status: 400 }
@@ -63,27 +52,33 @@ export async function POST(request: Request) {
 
     const payload = parsed.data;
 
-    // Handle optional upload
+    // NOTE: On Vercel/serverless, writing uploads to disk is not reliable.
+    // For now we accept the request but ignore the file in production.
     let photoUrl: string | undefined;
     const photo = formData.get('photo');
-
     if (photo instanceof File && photo.size > 0) {
       if (!ALLOWED_TYPES.has(photo.type) || photo.size > MAX_FILE_SIZE) {
         return NextResponse.json({ ok: false, error: 'Invalid upload' }, { status: 400 });
       }
 
-      const ext = photo.type.split('/')[1];
-      const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const isProdServerless = !!process.env.VERCEL || process.env.NODE_ENV === 'production';
+      if (!isProdServerless) {
+        // Local dev only: save to /public/uploads
+        const fs = await import('node:fs/promises');
+        const path = await import('node:path');
 
-      const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-      await fs.mkdir(uploadsDir, { recursive: true });
+        const ext = photo.type.split('/')[1];
+        const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
-      const target = path.join(uploadsDir, filename);
-      await fs.writeFile(target, Buffer.from(await photo.arrayBuffer()));
-      photoUrl = `/uploads/${filename}`;
+        const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+        await fs.mkdir(uploadsDir, { recursive: true });
+        const target = path.join(uploadsDir, filename);
+
+        await fs.writeFile(target, Buffer.from(await photo.arrayBuffer()));
+        photoUrl = `/uploads/${filename}`;
+      }
     }
 
-    // Save lead first (this should succeed even if notifications fail)
     const lead = await prisma.lead.create({
       data: {
         clientId: client.id,
@@ -99,12 +94,13 @@ export async function POST(request: Request) {
       }
     });
 
-    // Best-effort notifications: NEVER block lead creation
+    // Best-effort notifications: dynamically import so build never fails.
     try {
+      const { sendLeadNotifications } = await import('@/lib/notifications');
+
       const dashboardUrl = `${process.env.APP_URL || 'http://localhost:3000'}/admin/leads/${lead.id}`;
       const message = `New lead: ${lead.name} | ${lead.phone} | ${lead.serviceType} | ${lead.address}`;
 
-      // If env vars are missing, your notification function might throw — we swallow it.
       await sendLeadNotifications({
         clientId: client.id,
         leadId: lead.id,
