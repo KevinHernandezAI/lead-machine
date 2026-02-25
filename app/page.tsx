@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { LandingPage } from '@/components/landing-page';
 import { resolveClient } from '@/lib/client';
 import { landingConfigSchema } from '@/lib/types';
