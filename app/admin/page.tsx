@@ -1,18 +1,44 @@
-export const dynamic = 'force-dynamic';
+'use client';
 
 import Link from 'next/link';
-import { isAuthenticated } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { useEffect, useMemo, useState } from 'react';
 
-const LEAD_STATUSES = ['NEW', 'CONTACTED', 'BOOKED', 'CLOSED'] as const;
-type LeadStatus = (typeof LEAD_STATUSES)[number];
+const LEAD_STATUSES = ['ALL', 'NEW', 'CONTACTED', 'BOOKED', 'CLOSED'] as const;
 
-export default async function AdminHome({
-  searchParams
-}: {
-  searchParams: { status?: string; from?: string; to?: string };
-}) {
-  if (!isAuthenticated()) {
+export default function AdminHome() {
+  const [status, setStatus] = useState<(typeof LEAD_STATUSES)[number]>('ALL');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [leads, setLeads] = useState<any[]>([]);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/leads?status=${encodeURIComponent(status)}`, { cache: 'no-store' });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        throw new Error(txt || `Request failed (${res.status})`);
+      }
+      const j = await res.json();
+      if (!j?.ok) throw new Error(j?.error || 'Failed');
+      setLeads(j.leads || []);
+    } catch (e: any) {
+      setError(e?.message || 'Failed to load leads');
+      setLeads([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
+
+  const unauthorized = useMemo(() => (error || '').toLowerCase().includes('unauthorized'), [error]);
+
+  if (unauthorized) {
     return (
       <main className="container-wrap py-12">
         <h1 className="text-2xl font-bold">Admin Login</h1>
@@ -20,58 +46,46 @@ export default async function AdminHome({
           <input name="password" type="password" placeholder="Password" className="w-full rounded border p-2" required />
           <button className="w-full rounded bg-brand-600 py-2 text-white">Sign in</button>
         </form>
+        <p className="mt-3 text-sm text-slate-600">After signing in, refresh this page if it doesn’t auto-load.</p>
       </main>
     );
   }
-
-  const statusParam = searchParams.status;
-  const status =
-    statusParam && statusParam !== 'ALL' && (LEAD_STATUSES as readonly string[]).includes(statusParam)
-      ? (statusParam as LeadStatus)
-      : undefined;
-
-  const where = {
-    status,
-    createdAt: {
-      gte: searchParams.from ? new Date(searchParams.from) : undefined,
-      lte: searchParams.to ? new Date(searchParams.to) : undefined
-    }
-  };
-
-  const leads = await prisma.lead.findMany({
-    where,
-    orderBy: { createdAt: 'desc' },
-    include: { client: true }
-  });
 
   return (
     <main className="container-wrap py-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Lead Dashboard</h1>
-        <div className="flex gap-2">
-          <Link href="/admin/settings" className="rounded border px-3 py-2">
-            Settings
-          </Link>
-          <form action="/api/admin/logout" method="post">
-            <button className="rounded bg-slate-800 px-3 py-2 text-white">Logout</button>
-          </form>
-        </div>
+        <form action="/api/admin/logout" method="post">
+          <button className="rounded bg-slate-800 px-3 py-2 text-white">Logout</button>
+        </form>
       </div>
 
-      <form className="mt-4 grid gap-2 rounded bg-white p-3 shadow md:grid-cols-4">
-        <select name="status" defaultValue={searchParams.status || 'ALL'} className="rounded border p-2">
-          <option value="ALL">All statuses</option>
-          {LEAD_STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
+      <div className="mt-4 flex flex-wrap items-center gap-2 rounded bg-white p-3 shadow">
+        <label className="text-sm text-slate-700">
+          Status
+          <select
+            className="ml-2 rounded border p-2"
+            value={status}
+            onChange={(e) => setStatus(e.target.value as any)}
+          >
+            {LEAD_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {s === 'ALL' ? 'All statuses' : s}
+              </option>
+            ))}
+          </select>
+        </label>
 
-        <input type="date" name="from" defaultValue={searchParams.from} className="rounded border p-2" />
-        <input type="date" name="to" defaultValue={searchParams.to} className="rounded border p-2" />
-        <button className="rounded bg-brand-600 text-white">Apply</button>
-      </form>
+        <button onClick={load} className="rounded border px-3 py-2 text-sm">
+          Refresh
+        </button>
+      </div>
+
+      {loading && <p className="mt-4">Loading…</p>}
+
+      {!loading && error && !unauthorized && (
+        <div className="mt-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>
+      )}
 
       <div className="mt-4 overflow-auto rounded bg-white shadow">
         <table className="min-w-full text-sm">
@@ -87,7 +101,7 @@ export default async function AdminHome({
           <tbody>
             {leads.map((lead) => (
               <tr key={lead.id} className="border-t">
-                <td className="p-2">{lead.createdAt.toLocaleDateString()}</td>
+                <td className="p-2">{new Date(lead.createdAt).toLocaleDateString()}</td>
                 <td className="p-2">
                   <Link className="text-brand-700 underline" href={`/admin/leads/${lead.id}`}>
                     {lead.name}
@@ -95,9 +109,16 @@ export default async function AdminHome({
                 </td>
                 <td className="p-2">{lead.serviceType}</td>
                 <td className="p-2">{lead.status}</td>
-                <td className="p-2">{lead.client.name}</td>
+                <td className="p-2">{lead.client?.name}</td>
               </tr>
             ))}
+            {!loading && leads.length === 0 && (
+              <tr>
+                <td className="p-3 text-slate-600" colSpan={5}>
+                  No leads yet.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
