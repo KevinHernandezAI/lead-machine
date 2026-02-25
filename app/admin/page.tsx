@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic';
+
 import Link from 'next/link';
 import { isAuthenticated } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
@@ -51,9 +52,6 @@ export default async function AdminHome({
           <Link href="/admin/settings" className="rounded border px-3 py-2">
             Settings
           </Link>
-          <a href="/api/admin/export" className="rounded border px-3 py-2">
-            Export CSV
-          </a>
           <form action="/api/admin/logout" method="post">
             <button className="rounded bg-slate-800 px-3 py-2 text-white">Logout</button>
           </form>
