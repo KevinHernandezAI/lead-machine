@@ -1,10 +1,9 @@
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+export const fetchCache = 'force-no-store';
 
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { leadSchema } from '@/lib/types';
 
 const MAX_FILE_SIZE = 4 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -21,14 +20,14 @@ function toNullableDate(value: unknown): Date | null {
 
 export async function POST(request: Request) {
   try {
+    // ✅ Lazy imports so Vercel build can import this file safely
+    const [{ prisma }, { leadSchema }] = await Promise.all([import('@/lib/prisma'), import('@/lib/types')]);
+
     const formData = await request.formData();
 
     const clientSlugRaw = formData.get('clientSlug');
     const clientSlug = typeof clientSlugRaw === 'string' ? clientSlugRaw : '';
-
-    if (!clientSlug) {
-      return NextResponse.json({ ok: false, error: 'Missing clientSlug' }, { status: 400 });
-    }
+    if (!clientSlug) return NextResponse.json({ ok: false, error: 'Missing clientSlug' }, { status: 400 });
 
     const client = await prisma.client.findUnique({ where: { slug: clientSlug } });
     if (!client) return NextResponse.json({ ok: false, error: 'Client not found' }, { status: 404 });
@@ -44,18 +43,15 @@ export async function POST(request: Request) {
     });
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { ok: false, where: 'leadSchema', error: parsed.error.flatten() },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, where: 'leadSchema', error: parsed.error.flatten() }, { status: 400 });
     }
 
     const payload = parsed.data;
 
-    // NOTE: On Vercel/serverless, writing uploads to disk is not reliable.
-    // For now we accept the request but ignore the file in production.
+    // Upload handling: local only. Production (Vercel) ignores file to avoid serverless FS issues.
     let photoUrl: string | undefined;
     const photo = formData.get('photo');
+
     if (photo instanceof File && photo.size > 0) {
       if (!ALLOWED_TYPES.has(photo.type) || photo.size > MAX_FILE_SIZE) {
         return NextResponse.json({ ok: false, error: 'Invalid upload' }, { status: 400 });
@@ -63,7 +59,6 @@ export async function POST(request: Request) {
 
       const isProdServerless = !!process.env.VERCEL || process.env.NODE_ENV === 'production';
       if (!isProdServerless) {
-        // Local dev only: save to /public/uploads
         const fs = await import('node:fs/promises');
         const path = await import('node:path');
 
@@ -72,8 +67,8 @@ export async function POST(request: Request) {
 
         const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
         await fs.mkdir(uploadsDir, { recursive: true });
-        const target = path.join(uploadsDir, filename);
 
+        const target = path.join(uploadsDir, filename);
         await fs.writeFile(target, Buffer.from(await photo.arrayBuffer()));
         photoUrl = `/uploads/${filename}`;
       }
@@ -94,7 +89,7 @@ export async function POST(request: Request) {
       }
     });
 
-    // Best-effort notifications: dynamically import so build never fails.
+    // Best-effort notifications: lazy import too
     try {
       const { sendLeadNotifications } = await import('@/lib/notifications');
 
