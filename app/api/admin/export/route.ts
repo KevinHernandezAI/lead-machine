@@ -1,6 +1,7 @@
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+export const fetchCache = 'force-no-store';
 
 import { NextResponse } from 'next/server';
 import { isAuthenticated } from '@/lib/auth';
@@ -31,14 +32,14 @@ export async function GET() {
       (lead.notes || '').replace(/,/g, ';'),
       (lead.internalNotes || '').replace(/,/g, ';')
     ];
-
     lines.push(row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','));
   }
 
   return new NextResponse(lines.join('\n'), {
     headers: {
       'Content-Type': 'text/csv',
-      'Content-Disposition': 'attachment; filename="leads.csv"'
+      'Content-Disposition': 'attachment; filename="leads.csv"',
+      'Cache-Control': 'no-store'
     }
   });
 }
